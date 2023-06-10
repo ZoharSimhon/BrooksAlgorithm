@@ -106,7 +106,7 @@ def handleArticulationPoints(G, articulation_points):
         for node in subgraphs[0].nodes:
             if subgraphs[0].nodes[node]['indexColor'] == color0:
                 subgraphs[0].nodes[node]['indexColor'] = color1
-            if subgraphs[0].nodes[node]['indexColor'] == color1:
+            elif subgraphs[0].nodes[node]['indexColor'] == color1:
                 subgraphs[0].nodes[node]['indexColor'] = color0
     
     #merge the subgraphs
@@ -118,6 +118,38 @@ def handleArticulationPoints(G, articulation_points):
     for node in neighbors:
         G.add_edge(node,cut_vertex)
 
+
+def findTriangle(G):
+    for node in G.nodes:
+        neighbors = list(G.neighbors(node))
+        for i in neighbors:
+            for j in neighbors:
+                if (i,j) not in G.edges:
+                    return node, i, j
+                    
+
+def handleKappaGreaterThanOne(G):
+    #find a triangle
+    x, y, z = findTriangle(G)
+    yNeighbors = list(G.neighbors(y))
+    zNeighbors = list(G.neighbors(z))
+    #present G-{y,z}:
+    G.remove_nodes_from([y,z])
+    #color the graph G when x is  the root
+    colorGraph(G,x)
+    showGraph(G)
+    #find free color for y,z
+    colors = OrderedSet()
+    for node in G.nodes:
+        colors.add(G.nodes[node]['indexColor'])
+    freeColor = 0
+    for c in colors:
+        if freeColor != c:
+            break
+        freeColor += 1
+    #add y,z to the graph with the same color:
+    G.add_nodes_from([y,z], indexColor=freeColor)
+    
 
 def findMinumColoring(G):
     # check delta(G)
@@ -145,8 +177,6 @@ def findMinumColoring(G):
         showGraph(G)
         return
         
-        
-        
-    
-    #case 2: kapa >= 2
+    #case 2: kappa >= 2
+    handleKappaGreaterThanOne(G)
     
