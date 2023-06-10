@@ -5,7 +5,6 @@ from orderedSet import *
 
 def createGraph(nodes,edges,colors):
     G = nx.Graph(colors = colors)
-    # G.add_nodes_from(nodes, takenColors = OrderedSet(),indexColor = -1)
     for node in nodes:
         G.add_node(node, takenColors = OrderedSet(),indexColor = -1)
     G.add_edges_from(edges)
@@ -27,7 +26,7 @@ def showGraph(G):
                     edge_color=edge_colors, with_labels=True)
     plt.ion()
     plt.show()
-    plt.pause(2)
+    plt.pause(5)
     
 
 def greedyColor(G,order):
@@ -75,6 +74,50 @@ def colorGraph(G,root):
     #created an order list for the greedy coloring
     order = list(spanning_tree.nodes)[-1::-1]
     greedyColor(G,order)
+    
+def handleArticulationPoints(G, articulation_points):
+    #split the graph into 2 graphs
+    cut_vertex = articulation_points[0]
+    articulation_neighbors = G.neighbors(cut_vertex)
+    G.remove_node(cut_vertex)
+    subgraphs = [G.subgraph(c).copy() for c in nx.connected_components(G)]
+    subgraphs[0].add_node(cut_vertex,takenColors = OrderedSet(),indexColor = -1)
+    
+    neighbors = list(articulation_neighbors)
+    for node in neighbors:
+        if node in subgraphs[0].nodes:
+            subgraphs[0].add_edge(node, cut_vertex)
+        
+    subgraphs[1].add_node(cut_vertex,takenColors = OrderedSet(),indexColor = -1)
+    for node in neighbors:
+        if node in subgraphs[1].nodes:
+            subgraphs[1].add_edge(node, cut_vertex)
+   
+    #color the first graph
+    colorGraph(subgraphs[0], cut_vertex)
+    showGraph(subgraphs[0])
+    #color the second graph
+    colorGraph(subgraphs[1], cut_vertex)
+    showGraph(subgraphs[1])
+    #replace the colors in subgraphs[0]
+    color0 = subgraphs[0].nodes[cut_vertex]['indexColor']
+    color1 = subgraphs[1].nodes[cut_vertex]['indexColor']
+    if color0 !=color1:
+        for node in subgraphs[0].nodes:
+            if subgraphs[0].nodes[node]['indexColor'] == color0:
+                subgraphs[0].nodes[node]['indexColor'] = color1
+            if subgraphs[0].nodes[node]['indexColor'] == color1:
+                subgraphs[0].nodes[node]['indexColor'] = color0
+    
+    #merge the subgraphs
+    G.add_node(cut_vertex, indexColor= color1)
+    for node in subgraphs[0].nodes:
+        G.nodes[node]['indexColor'] = subgraphs[0].nodes[node]['indexColor']
+    for node in subgraphs[1].nodes:
+        G.nodes[node]['indexColor'] = subgraphs[1].nodes[node]['indexColor']
+    for node in neighbors:
+        G.add_edge(node,cut_vertex)
+
 
 def findMinumColoring(G):
     # check delta(G)
@@ -96,43 +139,10 @@ def findMinumColoring(G):
     #case 2: delta-regular
     # two cases of G:
     articulation_points = list(nx.articulation_points(G))
-    #case 1:
+    #case 1: kappa == 1
     if articulation_points:
-        #split the graph into 2 graphs
-        cut_vertex = articulation_points[0]
-        articulation_neighbors = G.neighbors()
-        G.remove_node(cut_vertex)
-        subgraphs = [G.subgraph(c).copy() for c in nx.connected_components(G)]
-        subgraphs[0].add_node(cut_vertex)
-        for node in articulation_neighbors:
-            if node in subgraphs[0].nodes:
-                subgraphs[0].add_edge(node, cut_vertex)
-            
-        subgraphs[1].add_node(cut_vertex)
-        for node in articulation_neighbors:
-            if node in subgraphs[1].nodes:
-                subgraphs[1].add_edge(node, cut_vertex)
-        #color the first graph
-        colorGraph(subgraphs[0], cut_vertex)
-        showGraph(subgraphs[0])
-        #color the first graph
-        colorGraph(subgraphs[1], cut_vertex)
-        showGraph(subgraphs[1])
-        #replace the colors in subgraphs[0]
-        color0 = subgraphs[0].nodes[cut_vertex]['indexColor']
-        color1 = subgraphs[1].nodes[cut_vertex]['indexColor']
-        if color0 !=color1:
-            for node in subgraphs[0].nodes:
-                if subgraphs[0].nodes[node]['indexColor'] == color0:
-                    subgraphs[0].nodes[node]['indexColor'] == color1
-                if subgraphs[0].nodes[node]['indexColor'] == color1:
-                    subgraphs[0].nodes[node]['indexColor'] == color0
-        #merge the subgraphs
-        G.add_node(cut_vertex,color= color1)
-        for node in articulation_neighbors:
-             G.add_edge(node,cut_vertex)
+        handleArticulationPoints(G, articulation_points)
         showGraph(G)
-        
         return
         
         
